@@ -8,7 +8,7 @@ import blf
 bl_info = {
     "name": "Project Time Tracker",
     "author": "lorexcold",
-    "version": (1, 0, 1),
+    "version": (1, 0, 2),
     "blender": (3, 0, 0),
     "location": "Top Bar > TimeTracker",
     "description": "Tracks time spent on Blender projects",
@@ -79,6 +79,14 @@ def timer_update(scene):
     else:
         update_time()
 
+@persistent
+def load_post_handler(dummy):
+    global tracking_active, last_active_time, is_paused
+    # Reset tracking state when loading a new file
+    tracking_active = True
+    is_paused = False
+    last_active_time = time.time()
+
 def draw_timer_callback(self, context):
     # Check if we're in a 3D View
     for window in bpy.context.window_manager.windows:
@@ -93,7 +101,7 @@ def draw_timer_callback(self, context):
 
                 # Set up font
                 font_id = 0
-                blf.position(font_id, 20, region.height - 60, 0)
+                blf.position(font_id, 20, region.height - 840, 0)
                 blf.size(font_id, 20)
                 blf.color(font_id, 1, 1, 1, 1)
                 status = "PAUSED" if is_paused else "TRACKING"
@@ -165,6 +173,9 @@ def register():
     
     if timer_update not in bpy.app.handlers.frame_change_post:
         bpy.app.handlers.frame_change_post.append(timer_update)
+        
+    if load_post_handler not in bpy.app.handlers.load_post:
+        bpy.app.handlers.load_post.append(load_post_handler)
     
     args = (None, bpy.context)
     draw_handle = bpy.types.SpaceView3D.draw_handler_add(
@@ -178,6 +189,9 @@ def unregister():
     
     if timer_update in bpy.app.handlers.frame_change_post:
         bpy.app.handlers.frame_change_post.remove(timer_update)
+        
+    if load_post_handler in bpy.app.handlers.load_post:
+        bpy.app.handlers.load_post.remove(load_post_handler)
     
     if draw_handle is not None:
         bpy.types.SpaceView3D.draw_handler_remove(draw_handle, 'WINDOW')
